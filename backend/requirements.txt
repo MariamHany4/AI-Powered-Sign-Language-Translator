@@ -13,4 +13,5 @@ pydantic-settings
 groq
 pydantic[email]
 passlib
+argon2-cffi
 python-jose

@@ -72,6 +72,68 @@ The project uses the [ASL Citizen dataset](https://www.kaggle.com/datasets/abd0k
 MediaPipe extracts landmarks from the video frames, allowing the model to learn from sequences of movements rather than treating each frame as an independent image.
 
 
+## How to Run the Project
+
+The project consists of three parts: the AI service, the backend, and the frontend. Each one must run in a **separate terminal**.
+
+### 1. AI Service
+
+Open a terminal and navigate to the `ai_service` directory.
+
+Run the setup script:
+
+```bat
+setup.bat
+```
+
+After setup is complete, activate the virtual environment and start the AI service:
+
+```bat
+venv_ai\Scripts\activate
+python main.py
+```
+
+### 2. Backend
+
+Open a **second terminal** and navigate to the `backend` directory.
+
+Run the setup script:
+
+```bat
+setup.bat
+```
+
+After setup is complete, activate the virtual environment and start the backend server:
+
+```bat
+venv_backend\Scripts\activate
+uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+### 3. Frontend
+
+Open a **third terminal** and navigate to the `frontend` directory.
+
+Install the dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+### Important Notes
+
+- Keep all **three terminals running** while using the application.
+- Run each command from its corresponding directory.
+- The AI service and backend must be running for the frontend to use their functionality.
+- Run `npm install` again only when needed, such as after changes to the frontend dependencies.
+
+
 ## Future Improvements
 
 - Expand the supported sign vocabulary.
