@@ -1,9 +1,7 @@
 @echo off
 title ASL Project Setup
 
-echo ========================================
-echo   AI Sign Language Project Setup
-echo ========================================
+echo   AI Service Setup
 echo.
 
 py -3.10 --version >nul 2>&1
