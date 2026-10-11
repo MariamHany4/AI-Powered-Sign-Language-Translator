@@ -1,9 +1,7 @@
 @echo off
 title AI Sign Language Backend Setup
 
-echo ========================================
-echo   AI Sign Language Backend Setup
-echo ========================================
+echo Backend Setup
 echo.
 
 py -3.10 --version >nul 2>&1
