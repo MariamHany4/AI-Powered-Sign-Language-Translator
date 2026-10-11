@@ -1,168 +1,99 @@
-# AI-Powered Skeleton-Based Sign Language Translation System
+# AI-Powered Sign Language Translation Platform 
 
-## 1. Introduction
+A web based platform that helps bridge the communication gap between sign language users and non signers using Computer Vision, Deep Learning, and Large Language Models (LLMs).
 
-Millions of deaf and hard-of-hearing individuals face persistent communication barriers in education, healthcare, and daily life. This project presents an **AI-powered, multilingual sign language translation platform** that enables **real-time, bidirectional translation** between **sign languages** and **spoken or written languages**.
+The project supports real time and video based American Sign Language (ASL) translation, with features for converting signs to text and speech, translating text into signs, and communicating through video calls.
 
-Unlike traditional avatar-based or video-retrieval systems, the proposed solution adopts a **skeleton-based motion synthesis approach**, directly generating **2D/3D skeletal sign gestures** from text, speech, or video. This significantly reduces computational overhead, improves scalability, and supports research-oriented extensions in sign language understanding and human motion generation.
+## About the Project
 
----
+This project was developed as a graduation project to make sign language communication more accessible.
 
-## 2. Project Objectives
+The main idea is to recognize ASL signs from video input, convert them into text, and generate more natural sentences using an LLM. The platform also supports speech output and text to sign translation, allowing communication in both directions.
 
-- Develop a robust **pose-based sign language translation system**.
-- Enable **real-time, bidirectional translation** between sign and spoken languages.
-- Improve generalization across signers, environments, and camera setups.
-- Reduce reliance on raw RGB video using compact landmark-based representations.
-- Support multilingual sign and spoken language translation.
-- Provide an extensible framework for research and real-world accessibility applications.
+For sign recognition, we used MediaPipe to extract hand and pose landmarks from video frames, then passed the resulting sequences to a Temporal Convolutional Network (TCN) to classify the signs.
 
----
+The model achieved **92.36% accuracy on a 441-class subset of the ASL Citizen dataset**.
 
-## 3. Key Features
+## Features
 
-### 3.1 Core Functionality
+- **Real Time Sign Recognition:** Recognizes ASL signs from live camera input.
+- **Video Based Translation:** Translates signs from recorded videos into text.
+- **Sign to Text:** Converts recognized signs into readable text.
+- **Sign to Speech:** Converts translation results into spoken audio.
+- **Text to Sign:** Provides a way to translate text into sign language.
+- **LLM Integration:** Generates more natural, context-aware sentences from recognized signs.
+- **Confidence Scores:** Displays confidence information for sign predictions.
+- **Video Calls:** Supports video-call communication within the platform.
+- **User Authentication:** Allows users to access the platform through authentication.
+- **Sign Browsing:** Lets users explore available signs and their representations.
 
-- **Real-Time Camera Translation**  
-  Captures live sign gestures via camera and translates them into text or synthesized speech.
+## How It Works
 
-- **Video-Based Translation**  
-  Processes uploaded or pre-recorded videos to generate translated outputs.
+The sign recognition pipeline follows these main steps:
 
-- **Speech-to-Sign Translation**  
-  Converts spoken input into skeleton-based sign motion sequences.
+1. **Input:** The user provides a live camera feed or a recorded video.
+2. **Landmark Extraction:** MediaPipe extracts relevant hand and pose landmarks from the video frames.
+3. **Preprocessing:** The extracted landmarks are processed and organized into sequences.
+4. **Feature Engineering:** Transforming the extracted landmarks to other useful features, which will be the input to the model.
+4. **Sign Classification:** A trained TCN analyzes the sequences and predicts the corresponding sign classes.
+5. **Sentence Generation:** The recognized output is passed to an LLM to generate more coherent, context aware sentences.
+6. **Output:** The platform presents the translated text and supports speech generation through its Sign to Speech feature.
 
-- **Multilingual Support**  
-  Supports multiple sign languages (e.g., ASL, ArSL) and spoken languages (e.g., English, Arabic).
+The platform also includes a separate Text to Sign workflow for communication in the opposite direction.
 
-### 3.2 Advanced Capabilities
+## Model Performance
 
-- **AI-Powered Sign Language Chatbot**  
-  Interactive assistant that responds using animated skeletal signing.
+| Item | Details |
+|---|---|
+| Accuracy | 92.36% |
+| Dataset | ASL Citizen |
+| Number of classes | 441-class subset |
+| Landmark extraction | MediaPipe |
+| Classification model | Temporal Convolutional Network (TCN) |
 
-- **Offline Mode**  
-  Lightweight models deployed using TensorFlow Lite for low-connectivity environments.
+The reported accuracy refers to sign classification on the specified dataset subset, not the accuracy of the entire translation platform.
 
-- **Accessibility Toolkit**  
-  Adjustable sign speed, visual contrast, vibration feedback, and text-to-speech options.
+## Technologies Used
 
----
+- **Python** — AI and machine learning development
+- **MediaPipe** — Hand and pose landmark extraction
+- **OpenCV** — Image and video processing
+- **TensorFlow / Keras** — Deep learning
+- **Temporal Convolutional Network (TCN)** — Sign sequence classification
+- **Large Language Models (LLMs)** — Context-aware sentence generation
+- **Computer Vision and NLP** — Sign recognition and language processing
+- **Web Technologies** — Platform development and integration
 
-## 4. System Architecture
 
-The system follows a modular, end-to-end pipeline integrating perception, language understanding, and motion synthesis.
+## Dataset
 
-### Processing Pipeline
+The project uses the [ASL Citizen dataset](https://www.kaggle.com/datasets/abd0kamel/asl-citizen/data) for sign recognition, with the reported evaluation covering a subset of 441 classes.
 
-1. **Input Sources**  
-   Camera, microphone, text input, or uploaded video.
+MediaPipe extracts landmarks from the video frames, allowing the model to learn from sequences of movements rather than treating each frame as an independent image.
 
-2. **Pose & Audio Extraction**  
-   - Body, hand, and face landmarks using MediaPipe or OpenPose  
-   - Speech transcription using ASR models
 
-3. **Language Processing**  
-   Spoken or written language translated into sign gloss using Transformer-based models.
+## Future Improvements
 
-4. **Motion Generation**  
-   Gloss-to-pose sequence generation using Transformers or GAN-based architectures.
+- Expand the supported sign vocabulary.
+- Improve recognition under different lighting conditions and backgrounds.
+- Reduce inference time for smoother real time translation.
+- Evaluate performance across different signers.
+- Improve handling of uncertain predictions and sentence generation.
 
-5. **Visualization**  
-   2D/3D skeletal animation using MediaPipe rendering, Matplotlib, or Three.js.
+## Contributors
 
-6. **User Interface**  
-   Web-based front end built with React and Tailwind CSS.
+- [Mariam Hany]
+- [Demiana Ayman]
+- [Kareem Mohamed]
+- [Shahd Mohamed]
+- [Yahya Ahmed]
+- [Hussam Elsayed]
 
----
+## Acknowledgments
 
-## 5. Methodology
-
-### 5.1 Pose-Based Representation
-
-The system operates on **pose landmarks** rather than raw RGB frames, providing:
-- Robustness to lighting and background variation
-- Compact and efficient data representation
-- Improved generalization across signers
-
-### 5.2 Preprocessing Strategy
-
-A **Global-Mean Normalization with Robust Hand Handling** pipeline is used:
-- Validity-aware landmark filtering
-- Sequence-level root and scale computation
-- Global normalization across pose, face, and hands
-- Hand swap correction and distance gating
-- Conservative wrist-relative gap filling
-- Optional temporal smoothing and resampling
-
-### 5.3 Model Training
-
-- **Recognition (ISLR)**  
-  Models evaluated include:
-  - 1D CNN (baseline)
-  - LSTM
-  - Temporal Convolutional Networks (TCN)
-  - Transformer-based models
-  - ST-GCN and ensemble models
-
-- **Generation**  
-  Gloss-to-pose synthesis using Transformer and GAN-based architectures.
+Thanks to the contributors of the ASL Citizen dataset and the open-source communities behind MediaPipe and TensorFlow.
 
 ---
 
-## 6. Tools and Technologies
+**Graduation Project | Computer Engineering**
 
-| Category | Tools |
-|-------|------|
-| Pose Extraction | MediaPipe, OpenPose, OpenCV |
-| Machine Learning | TensorFlow, PyTorch |
-| Speech Recognition | Whisper, Wav2Vec 2.0 |
-| Motion Generation | Transformers, GANs |
-| Visualization | Matplotlib, Three.js, WebGL |
-| Front-End | React, Tailwind CSS |
-| Back-End |Node.js |
-
----
-
-## 7. Datasets
-
-### Sign Language Datasets
-
-- **MS-ASL** – Large-scale real-world ASL dataset  
-- **WLASL** – Word-level ASL dataset  
-- **PHOENIX-2014T** – Sentence-level sign language dataset  
-- **YouTube-ASL** – Conversational sign language dataset  
-
-Efficient streaming pipelines are used to avoid storing large raw video files.
-
----
-
-## 8. User Workflow
-
-1. Select translation mode from the home interface.
-2. Perform live sign input or provide speech/text.
-3. System processes input and generates translated output.
-4. Results are displayed as text, speech, or skeleton-based sign animation.
-5. Accessibility settings allow user customization.
-
----
-
-## 9. Future Work
-
-- Sentence-level sign translation with advanced datasets.
-- Cross-sign-language translation (e.g., ASL ↔ BSL).
-- Augmented Reality (AR)–based visualization.
-- Self-supervised and multimodal learning approaches.
-- Improved text-to-pose motion realism.
-
----
-
-## 10. Project Vision
-
-This project aims to deliver a **scalable, inclusive, and research-driven sign language translation platform** that leverages **AI-based skeleton motion synthesis** to bridge communication gaps and advance sign language technology.
-
----
-
-## 11. License
-
-This project is licensed under the **MIT License**.  
-See the `LICENSE` file for details.

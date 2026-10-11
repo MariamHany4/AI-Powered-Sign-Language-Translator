@@ -1,0 +1,599 @@
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { 
+  Save, 
+  CheckCircle, 
+  User, 
+  Lock, 
+  Mail, 
+  Globe, 
+  Palette, 
+  Shield,
+  Eye,
+  EyeOff,
+  Camera,
+  Settings,
+  LogOut,
+  Zap,
+  Sparkles
+} from 'lucide-react';
+import { TbSparkles } from "react-icons/tb";
+import { useAuth } from "../context/useAuth";
+import { getApiUrl } from "../lib/api";
+import axios from "axios";
+
+const PROFILE_PLACEHOLDER_URL = "https://placehold.co/300x300/A044FF/ffffff?text=User";
+
+export default function Profile() {
+  const { user: authUser, updateUser, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const [profileData, setProfileData] = useState({
+    name: "",
+    email: "",
+    theme: "system",
+    preferredLanguage: "ASL",
+    notifications: true,
+    twoFactor: false,
+    autoSave: true
+  });
+  // Password change fields
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [showToast, setShowToast] = useState(false);
+  const [avatar, setAvatar] = useState(PROFILE_PLACEHOLDER_URL);
+
+  const fileInputRef = useRef(null);
+
+  // Sync profile details and picture from AuthContext/localStorage
+  useEffect(() => {
+    if (authUser) {
+      setProfileData(prev => ({
+        ...prev,
+        name: authUser.username || "",
+        email: authUser.email || "",
+      }));
+
+      const savedAvatar = localStorage.getItem(`profile_pic_${authUser.email}`);
+      if (savedAvatar) {
+        setAvatar(savedAvatar);
+      } else {
+        const initials = authUser.username?.charAt(0).toUpperCase() || 'U';
+        setAvatar(`https://placehold.co/300x300/A044FF/ffffff?text=${initials}`);
+      }
+    }
+  }, [authUser]);
+
+  const fadeUp = {
+    hidden: { opacity: 0, y: 25 },
+    visible: { opacity: 1, y: 0 },
+  };
+
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setProfileData((prev) => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!authUser) return;
+    setSaving(true);
+    setErrorMsg("");
+
+    // Validate password fields
+    const isOldFilled = oldPassword.trim().length > 0;
+    const isNewFilled = newPassword.trim().length > 0;
+    const isConfirmFilled = confirmPassword.trim().length > 0;
+
+    if (isOldFilled || isNewFilled || isConfirmFilled) {
+      // If any password field is filled, all three must be filled
+      if (!isOldFilled || !isNewFilled || !isConfirmFilled) {
+        setErrorMsg("Please fill in all password fields to change your password.");
+        setSaving(false);
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setErrorMsg("New password and confirm password do not match.");
+        setSaving(false);
+        return;
+      }
+      if (newPassword.length < 6) {
+        setErrorMsg("New password must be at least 6 characters long.");
+        setSaving(false);
+        return;
+      }
+    }
+
+    try {
+      // Prepare payload – send old and new password only if they are filled
+      const payload = {
+        username: profileData.name,
+      };
+      if (isOldFilled && isNewFilled) {
+        payload.old_password = oldPassword;
+        payload.new_password = newPassword;
+      }
+
+      await axios.put(`${getApiUrl()}/users/me`, payload);
+
+      // Update AuthContext user state
+      updateUser({ username: profileData.name });
+
+      // Clear password fields after success
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err) {
+      console.error("Failed to save profile changes:", err);
+      setErrorMsg(
+        err?.response?.data?.detail || 
+        err?.message || 
+        "Failed to update profile. Please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCameraClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result;
+        setAvatar(base64String);
+        if (authUser?.email) {
+          localStorage.setItem(`profile_pic_${authUser.email}`, base64String);
+          window.dispatchEvent(new Event('storage'));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSignOut = () => {
+    logout();
+    navigate("/");
+  };
+
+  const Card = ({ children, className = "", hover = false }) => (
+    <motion.div
+      variants={fadeUp}
+      whileHover={hover ? { y: -5, scale: 1.02 } : {}}
+      className={`
+        relative p-8 bg-gradient-to-br from-white/80 to-white/60 dark:from-white/10 dark:to-white/5 
+        backdrop-blur-xl border border-primary-200/50 dark:border-primary-500/20 
+        rounded-3xl shadow-xl shadow-primary-100/20 dark:shadow-primary-900/20
+        transition-all duration-500 overflow-hidden
+        ${hover ? 'hover:shadow-2xl hover:shadow-primary-200/30 dark:hover:shadow-primary-900/40' : ''}
+        ${className}
+      `}
+    >
+      {children}
+    </motion.div>
+  );
+
+  const InputField = ({ label, type = "text", name, value, onChange, placeholder, icon, options, isSelect = false, disabled = false }) => (
+    <div className="space-y-2">
+      <label htmlFor={name} className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+        {icon && <span className="text-primary-600 dark:text-primary-400">{icon}</span>}
+        {label}
+      </label>
+      <div className="relative group">
+        {isSelect ? (
+          <select
+            id={name}
+            name={name}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            className="
+              w-full p-3 pl-12 rounded-xl bg-white/70 dark:bg-gray-800/50
+              border border-gray-300 dark:border-gray-700
+              text-gray-900 dark:text-gray-200
+              focus:outline-none focus:ring-2 focus:ring-primary-custom-2/80
+              transition-all duration-300
+              group-hover:border-primary-400/50 dark:group-hover:border-primary-400/30
+              appearance-none bg-no-repeat bg-[length:20px_20px] bg-[center_right_1rem]
+            "
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23A044FF' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`
+            }}
+          >
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <>
+            <span className="absolute inset-y-0 left-3 flex items-center text-gray-400 dark:text-gray-400">
+              {icon}
+            </span>
+            <input
+              id={name}
+              type={type === 'password' && showPassword ? 'text' : type}
+              name={name}
+              value={value}
+              onChange={onChange}
+              placeholder={placeholder}
+              disabled={disabled}
+              className={`
+                w-full p-3 pl-12 pr-12 rounded-xl bg-white/70 dark:bg-gray-800/50
+                border border-gray-300 dark:border-gray-700
+                text-gray-900 dark:text-gray-200
+                focus:outline-none focus:ring-2 focus:ring-primary-custom-2/80
+                transition-all duration-300
+                group-hover:border-primary-400/50 dark:group-hover:border-primary-400/30
+                ${disabled ? "opacity-60 cursor-not-allowed" : ""}
+              `}
+            />
+            {type === 'password' && (
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-primary-600 transition-colors"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  const Switch = ({ label, checked, onChange, name }) => (
+    <div className="flex items-center justify-between py-2">
+      <span className="text-gray-700 dark:text-gray-300 font-medium">{label}</span>
+      <button
+        type="button"
+        onClick={() => onChange({ target: { name, type: 'checkbox', checked: !checked } })}
+        className={`
+          relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300
+          ${checked ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-700'}
+        `}
+      >
+        <span
+          className={`
+            inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300
+            ${checked ? 'translate-x-6' : 'translate-x-1'}
+          `}
+        />
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="relative w-full min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/60 dark:from-primary-bg-1 dark:via-primary-bg-2 dark:to-primary-bg-3 py-24 px-4 sm:px-6 lg:px-8 font-inter overflow-hidden z-0">
+      
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+
+      <div className="absolute inset-0 opacity-40 dark:opacity-60 pointer-events-none">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `
+            linear-gradient(90deg, var(--theme-grid-color) 1px, transparent 1px),
+            linear-gradient(180deg, var(--theme-grid-color) 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px'
+        }} />
+      </div>
+
+      <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gradient-to-r from-primary-600/10 via-pink-600/10 to-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-gradient-to-r from-indigo-600/10 via-primary-600/10 to-pink-600/10 rounded-full blur-[100px] pointer-events-none" />
+
+      <motion.div
+        initial={{ x: "100%", opacity: 0 }}
+        animate={showToast ? { x: 0, opacity: 1 } : { x: "100%", opacity: 0 }}
+        transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
+        className="fixed top-24 right-6 p-4 rounded-xl shadow-2xl bg-gradient-to-r from-green-500/90 to-emerald-500/90 backdrop-blur-md text-white font-semibold flex items-center gap-2 z-50"
+      >
+        <CheckCircle size={20} />
+        <span>Changes saved successfully!</span>
+        <div className="w-32 h-1 bg-white/50 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: "100%" }}
+            animate={{ width: "0%" }}
+            transition={{ duration: 3, ease: "linear" }}
+            className="h-full bg-white"
+          />
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        variants={staggerContainer}
+        className="max-w-7xl mx-auto text-center mb-16 relative z-10"
+      >
+        <motion.div
+          variants={fadeUp}
+          className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary-500/15 via-primary-400/10 to-primary-300/10 border border-primary-200/60 dark:border-primary-700/60 backdrop-blur-xl shadow-lg shadow-primary-500/10 relative overflow-hidden group mb-8"
+        >
+          <div className="relative">
+            <span className="absolute animate-ping inline-flex h-3.5 w-3.5 rounded-full bg-primary-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-gradient-to-r from-primary-500 to-primary-400" />
+          </div>
+          <span className="text-sm font-bold bg-gradient-to-r from-primary-600 via-primary-500 to-primary-400 bg-clip-text text-transparent">
+            Personal Dashboard
+          </span>
+          <TbSparkles className="text-primary-500 ml-1" />
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary-500/0 via-primary-400/10 to-primary-500/0 group-hover:via-primary-400/20 transition-all duration-500" />
+        </motion.div>
+
+        <motion.h1
+          variants={fadeUp}
+          className="font-extrabold text-4xl sm:text-5xl lg:text-[53px] leading-tight mb-6"
+        >
+          <span className="block text-gray-900 dark:text-white">
+            Welcome Back,
+          </span>
+          <span className="block bg-gradient-to-r from-primary-custom-1 via-primary-custom-2 to-primary-custom-3 dark:from-primary-custom-1 dark:to-primary-custom-2 bg-clip-text text-transparent">
+            {profileData.name || "User"}
+          </span>
+        </motion.h1>
+
+        <motion.p
+          variants={fadeUp}
+          className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed"
+        >
+          Manage your personal details, preferences, and track your AI translation journey all in one place.
+        </motion.p>
+
+        <motion.div
+          variants={fadeUp}
+          className="flex items-center justify-center gap-8 mt-10"
+        >
+          <div className="w-12 h-1 bg-gradient-to-r from-transparent via-primary-500 to-transparent rounded-full" />
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="w-6 h-6 rounded-full border-2 border-primary-400/50"
+          />
+          <div className="w-12 h-1 bg-gradient-to-r from-transparent via-primary-500 to-transparent rounded-full" />
+        </motion.div>
+      </motion.div>
+
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Left Column */}
+          <div className="lg:w-2/5 space-y-8">
+            <Card hover={true} className="text-center">
+              <div className="relative mb-6">
+                <div 
+                  onClick={handleCameraClick}
+                  className="w-40 h-40 mx-auto rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-2xl relative group cursor-pointer"
+                >
+                  <img
+                    src={avatar}
+                    alt="Profile"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-primary-600/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
+                    <span className="text-white text-xs font-semibold bg-black/40 px-2.5 py-1 rounded-full backdrop-blur-sm">Change Photo</span>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleCameraClick(); }}
+                    className="absolute bottom-2 right-2 p-2 rounded-full bg-white dark:bg-gray-800 shadow-lg opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  >
+                    <Camera size={18} className="text-primary-600" />
+                  </button>
+                </div>
+                <div className="absolute top-0 right-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-primary-custom-1 to-primary-custom-2 flex items-center justify-center shadow-lg">
+                    <TbSparkles className="text-white" size={20} />
+                  </div>
+                </div>
+              </div>
+              
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{profileData.name || "User"}</h2>
+              <p className="text-primary-600 dark:text-primary-400 font-medium mb-4 flex items-center justify-center gap-2">
+                <Mail size={16} />
+                {profileData.email}
+              </p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
+                AI Translation Expert • Premium Member • Joined 2024
+              </p>
+              
+              <div className="flex flex-wrap gap-2 justify-center">
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-primary-500/10 to-pink-500/10 text-primary-700 dark:text-primary-300 border border-primary-300/30 dark:border-primary-500/30">
+                  Premium
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500/10 to-cyan-500/10 text-blue-700 dark:text-blue-300 border border-blue-300/30 dark:border-blue-500/30">
+                  AI Translator
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-green-500/10 to-emerald-500/10 text-green-700 dark:text-green-300 border border-green-300/30 dark:border-green-500/30">
+                  Verified
+                </span>
+              </div>
+            </Card>
+
+            <Card>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <Zap className="text-primary-600" size={20} />
+                Quick Actions
+              </h3>
+              <div className="space-y-3">
+                <button 
+                  onClick={handleSignOut}
+                  className="w-full p-3 rounded-xl bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-200/50 dark:border-red-500/20 text-red-600 dark:text-red-400 font-medium hover:bg-red-500/20 transition-all duration-300 flex items-center gap-3"
+                >
+                  <LogOut size={18} />
+                  Sign Out
+                </button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Right Column */}
+          <div className="lg:w-3/5 space-y-8">
+            <Card>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 flex items-center gap-3">
+                <User className="text-primary-600" size={24} />
+                Personal Information
+              </h3>
+              {errorMsg && (
+                <div className="mb-6 p-4 rounded-xl bg-red-500/15 border border-red-500/35 text-red-600 dark:text-red-400 font-medium text-sm">
+                  {errorMsg}
+                </div>
+              )}
+              <div className="grid md:grid-cols-2 gap-6">
+                <InputField
+                  label="Full Name"
+                  name="name"
+                  value={profileData.name}
+                  onChange={handleInputChange}
+                  icon={<User size={18} />}
+                />
+                <InputField
+                  label="Email Address"
+                  type="email"
+                  name="email"
+                  value={profileData.email}
+                  disabled={true}
+                  icon={<Mail size={18} />}
+                />
+              </div>
+
+              {/* Password Change Section */}
+              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                  <Lock size={18} className="text-primary-600" />
+                  Change Password
+                </h4>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <InputField
+                    label="Current Password"
+                    type="password"
+                    name="oldPassword"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    icon={<Lock size={18} />}
+                  />
+                  <div className="md:col-span-2 grid md:grid-cols-2 gap-6">
+                    <InputField
+                      label="New Password"
+                      type="password"
+                      name="newPassword"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      icon={<Lock size={18} />}
+                    />
+                    <InputField
+                      label="Confirm New Password"
+                      type="password"
+                      name="confirmPassword"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      icon={<Lock size={18} />}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Leave all password fields empty to keep your current password unchanged.
+                </p>
+              </div>
+            </Card>
+
+            <Card>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 flex items-center gap-3">
+                <Palette className="text-primary-600" size={24} />
+                Preferences & Settings
+              </h3>
+              <div className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <InputField
+                    label="Theme"
+                    name="theme"
+                    value={profileData.theme}
+                    onChange={handleInputChange}
+                    isSelect={true}
+                    icon={<Palette size={18} />}
+                    options={[
+                      { value: "light", label: "Light Mode" },
+                      { value: "dark", label: "Dark Mode" },
+                      { value: "system", label: "System Default" },
+                    ]}
+                  />
+                  <div className="space-y-4">
+                    <Switch
+                      label="Push Notifications"
+                      name="notifications"
+                      checked={profileData.notifications}
+                      onChange={handleInputChange}
+                    />
+                    <Switch
+                      label="Two-Factor Authentication"
+                      name="twoFactor"
+                      checked={profileData.twoFactor}
+                      onChange={handleInputChange}
+                    />
+                    <Switch
+                      label="Auto Save Progress"
+                      name="autoSave"
+                      checked={profileData.autoSave}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSave}
+              disabled={saving}
+              className={`w-full py-4 rounded-xl font-extrabold text-xl text-white bg-gradient-to-r from-primary-custom-1 via-primary-custom-2 to-primary-custom-3 shadow-2xl shadow-primary-500/30 hover:shadow-primary-500/50 transition-all duration-300 relative overflow-hidden group ${
+                saving ? "opacity-75 cursor-wait" : ""
+              }`}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+              <div className="relative z-10 flex items-center justify-center gap-3">
+                <Save size={24} />
+                {saving ? "Saving Changes..." : "Save All Changes"}
+                <Sparkles className="opacity-0 group-hover:opacity-100 transition-opacity duration-300" size={18} />
+              </div>
+            </motion.button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
