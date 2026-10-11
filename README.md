@@ -82,12 +82,12 @@ MediaPipe extracts landmarks from the video frames, allowing the model to learn 
 
 ## Contributors
 
-- [Mariam Hany]
-- [Demiana Ayman]
-- [Kareem Mohamed]
-- [Shahd Mohamed]
-- [Yahya Ahmed]
-- [Hussam Elsayed]
+- Mariam Hany
+- Demiana Ayman
+- Kareem Mohamed
+- Shahd Mohamed
+- Yahya Ahmed
+- Hussam Elsayed
 
 ## Acknowledgments
 
